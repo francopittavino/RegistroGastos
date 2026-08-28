@@ -15,10 +15,23 @@ export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: 'otro', label: 'Otro' },
 ];
 
+export type Unit = 'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'paquete';
+
+export const UNITS: { value: Unit; label: string }[] = [
+  { value: 'kg', label: 'kg' },
+  { value: 'g', label: 'g' },
+  { value: 'l', label: 'L' },
+  { value: 'ml', label: 'ml' },
+  { value: 'unidad', label: 'unidad' },
+  { value: 'paquete', label: 'paquete' },
+];
+
 export interface ExpenseItem {
   id: number;
   detail: string;
   amount: number;
+  quantity: number | null;
+  unit: Unit | null;
 }
 
 export interface Expense {

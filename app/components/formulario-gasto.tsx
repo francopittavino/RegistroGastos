@@ -3,7 +3,15 @@
 import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { crearGasto, actualizarGasto, borrarGasto, crearCategoria } from '@/lib/actions';
-import { PAYMENT_METHODS, type Category, type CategoryKind, type Expense, type PaymentMethod } from '@/lib/types';
+import {
+  PAYMENT_METHODS,
+  UNITS,
+  type Category,
+  type CategoryKind,
+  type Expense,
+  type PaymentMethod,
+  type Unit,
+} from '@/lib/types';
 import { hoyISO, formatMonto } from '@/lib/format';
 
 interface Props {
@@ -16,6 +24,8 @@ interface ItemDesglose {
   key: string;
   detalle: string;
   monto: string;
+  cantidad: string;
+  unidad: Unit | '';
 }
 
 function aNumero(valor: string): number {
@@ -28,6 +38,8 @@ function itemsIniciales(gasto?: Expense): ItemDesglose[] {
     key: String(it.id),
     detalle: it.detail,
     monto: String(it.amount),
+    cantidad: it.quantity != null ? String(it.quantity) : '',
+    unidad: it.unit ?? '',
   }));
 }
 
@@ -63,10 +75,13 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
   }
 
   function agregarItem() {
-    setItems((prev) => [...prev, { key: crypto.randomUUID(), detalle: '', monto: '' }]);
+    setItems((prev) => [
+      ...prev,
+      { key: crypto.randomUUID(), detalle: '', monto: '', cantidad: '', unidad: '' },
+    ]);
   }
 
-  function actualizarItem(key: string, campo: 'detalle' | 'monto', valor: string) {
+  function actualizarItem(key: string, campo: keyof Omit<ItemDesglose, 'key'>, valor: string) {
     setItems((prev) => prev.map((it) => (it.key === key ? { ...it, [campo]: valor } : it)));
   }
 
@@ -83,12 +98,20 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
     }
 
     let montoFinal: number;
-    let itemsFinal: { detail: string; amount: number }[] = [];
+    let itemsFinal: { detail: string; amount: number; quantity: number | null; unit: Unit | null }[] = [];
 
     if (desgloseActivo) {
       itemsFinal = items
         .filter((it) => it.detalle.trim() || it.monto.trim())
-        .map((it) => ({ detail: it.detalle.trim(), amount: aNumero(it.monto) || 0 }));
+        .map((it) => {
+          const cantidad = it.cantidad.trim() ? aNumero(it.cantidad) : null;
+          return {
+            detail: it.detalle.trim(),
+            amount: aNumero(it.monto) || 0,
+            quantity: cantidad != null && !Number.isNaN(cantidad) ? cantidad : null,
+            unit: cantidad != null ? it.unidad || 'unidad' : null,
+          };
+        });
 
       if (itemsFinal.length === 0) {
         setError('Agregá al menos un ítem, o desactivá el desglose');
@@ -192,32 +215,56 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
             <span className="text-sm text-muted">Ítems</span>
             <span className="text-lg font-bold tabular-nums">{formatMonto(totalItems)}</span>
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {items.map((it) => (
-              <div key={it.key} className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Detalle"
-                  value={it.detalle}
-                  onChange={(e) => actualizarItem(it.key, 'detalle', e.target.value)}
-                  className="min-h-[44px] flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-accent"
-                />
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="$0"
-                  value={it.monto}
-                  onChange={(e) => actualizarItem(it.key, 'monto', e.target.value)}
-                  className="min-h-[44px] w-24 rounded-xl border border-border bg-background px-3 text-sm tabular-nums outline-none focus:border-accent"
-                />
-                <button
-                  type="button"
-                  onClick={() => borrarItem(it.key)}
-                  aria-label="Borrar ítem"
-                  className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-muted"
-                >
-                  ✕
-                </button>
+              <div key={it.key} className="flex flex-col gap-2 rounded-xl border border-border/60 p-2">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Detalle (ej: arroz)"
+                    value={it.detalle}
+                    onChange={(e) => actualizarItem(it.key, 'detalle', e.target.value)}
+                    className="min-h-[44px] flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-accent"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => borrarItem(it.key)}
+                    aria-label="Borrar ítem"
+                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-muted"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Cantidad"
+                    value={it.cantidad}
+                    onChange={(e) => actualizarItem(it.key, 'cantidad', e.target.value)}
+                    className="min-h-[44px] w-24 rounded-xl border border-border bg-background px-3 text-sm tabular-nums outline-none focus:border-accent"
+                  />
+                  <select
+                    value={it.unidad}
+                    onChange={(e) => actualizarItem(it.key, 'unidad', e.target.value)}
+                    className="min-h-[44px] w-24 rounded-xl border border-border bg-background px-2 text-sm outline-none focus:border-accent"
+                  >
+                    <option value="">unidad</option>
+                    {UNITS.map((u) => (
+                      <option key={u.value} value={u.value}>
+                        {u.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="$0"
+                    value={it.monto}
+                    onChange={(e) => actualizarItem(it.key, 'monto', e.target.value)}
+                    className="min-h-[44px] flex-1 rounded-xl border border-border bg-background px-3 text-sm tabular-nums outline-none focus:border-accent"
+                  />
+                </div>
               </div>
             ))}
           </div>

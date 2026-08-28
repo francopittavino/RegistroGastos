@@ -22,6 +22,12 @@ create table if not exists expense_items (
   amount numeric(12, 2) not null
 );
 
+-- cantidad + unidad opcionales, para poder ver a fin de mes qué cantidad de
+-- cada comida se compró (pensado para planear la compra mensual siguiente).
+alter table expense_items add column if not exists quantity numeric(10, 2);
+alter table expense_items add column if not exists unit text
+  check (unit in ('kg', 'g', 'l', 'ml', 'unidad', 'paquete'));
+
 create table if not exists settings (
   id integer primary key default 1,
   monthly_budget numeric(12, 2),
