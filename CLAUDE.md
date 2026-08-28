@@ -62,15 +62,42 @@ las pantallas y lo que queda explícitamente fuera del V1.
   siguiente período si ya se cerró. Toda esta lógica vive en `lib/periods.ts`
   (`rangoDePeriodo`, `diasTranscurridos`) — no reintroduzcas un cálculo de
   "día X del mes" basado en el calendario.
+- **La proyección de Home es distinta del período de pago**: usa
+  `proyeccionCalendario()` (también en `lib/periods.ts`), que se ancla al 1°
+  del mes calendario que viene, independiente de cuándo el usuario cobra.
+  No la confundas con `rangoDePeriodo`/`diasTranscurridos`, que sí siguen el
+  período de pago.
+- **Colores del gráfico de torta**: paleta categórica fija en `lib/colors.ts`
+  (`PALETA_CATEGORICA`), en orden fijo, nunca generada ni ciclada. Si hay
+  más de 7 categorías con gasto en el período, el resto se pliega en una
+  porción "Otras categorías" con `COLOR_OTRAS` (gris neutro). No agregues
+  colores nuevos a mano en un componente — todo pasa por `armarSlices()`.
+- **Cantidad + unidad son opcionales, solo tienen sentido para comida**:
+  viven en `expense_items.quantity` / `.unit` (`Unit` en `lib/types.ts`, un
+  enum fijo: kg, g, l, ml, unidad, paquete). `getResumenComida()` en
+  `lib/queries.ts` agrupa por `(lower(trim(detail)), unit)` dentro de
+  categorías `kind = 'comida'` — es la base de la vista "Comida" en
+  Historial. Si el usuario carga cantidad sin elegir unidad, el form
+  defaultea a `'unidad'` (ver `formulario-gasto.tsx`) para no bloquear el
+  guardado por un campo secundario.
+- **No hay CSV.** Se sacó del V1 original a pedido del usuario — no lo
+  reintroduzcas sin que lo pida explícitamente.
 
 ## Base de datos
 
 - Neon Postgres. El mismo `DATABASE_URL` sirve tanto a Preview como a
   Production en Vercel (una sola base, sin branching por ambiente) — **no
   hay una base de "desarrollo" separada**. Cualquier dato de prueba cargado
-  localmente contra `.env.local` queda en la base real. Limpiar después de
-  probar (`delete from expenses;` es seguro, `categories`/`settings` seedeados
-  en `lib/db/schema.sql`).
+  localmente contra `.env.local` queda en la base real, y el usuario puede
+  estar usando la app en producción **al mismo tiempo** que vos probás en
+  local (ya pasó: mientras se testeaba una feature, el usuario cargó gastos
+  reales desde `registrodatos.vercel.app`).
+  **Antes de correr cualquier `delete`/`update` "de limpieza" contra la
+  base, mirá primero qué hay** (`select * from expenses order by id desc
+  limit 20`, fijate fechas/montos) y borrá por `id` puntual lo que vos mismo
+  insertaste en esta sesión de prueba — nunca un `delete from expenses`
+  a secas ni nada que arrase la tabla entera. Ante la duda de si una fila es
+  tuya o del usuario, preguntale antes de borrar.
 - Migraciones: `npm run db:migrate` corre `lib/db/schema.sql` completo
   (statements `create table if not exists` + seeds con `on conflict do
   nothing`, así es re-ejecutable sin duplicar nada). No hay sistema de
