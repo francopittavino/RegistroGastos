@@ -224,13 +224,13 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
                     placeholder="Detalle (ej: arroz)"
                     value={it.detalle}
                     onChange={(e) => actualizarItem(it.key, 'detalle', e.target.value)}
-                    className="min-h-[44px] flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-accent"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-accent"
                   />
                   <button
                     type="button"
                     onClick={() => borrarItem(it.key)}
                     aria-label="Borrar ítem"
-                    className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-muted"
+                    className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-muted"
                   >
                     ✕
                   </button>
@@ -239,15 +239,15 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
                   <input
                     type="text"
                     inputMode="decimal"
-                    placeholder="Cantidad"
+                    placeholder="Cant."
                     value={it.cantidad}
                     onChange={(e) => actualizarItem(it.key, 'cantidad', e.target.value)}
-                    className="min-h-[44px] w-24 rounded-xl border border-border bg-background px-3 text-sm tabular-nums outline-none focus:border-accent"
+                    className="min-h-[44px] w-16 shrink-0 rounded-xl border border-border bg-background px-2 text-sm tabular-nums outline-none focus:border-accent"
                   />
                   <select
                     value={it.unidad}
                     onChange={(e) => actualizarItem(it.key, 'unidad', e.target.value)}
-                    className="min-h-[44px] w-24 rounded-xl border border-border bg-background px-2 text-sm outline-none focus:border-accent"
+                    className="min-h-[44px] w-20 shrink-0 rounded-xl border border-border bg-background px-1 text-sm outline-none focus:border-accent"
                   >
                     <option value="">unidad</option>
                     {UNITS.map((u) => (
@@ -262,7 +262,7 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
                     placeholder="$0"
                     value={it.monto}
                     onChange={(e) => actualizarItem(it.key, 'monto', e.target.value)}
-                    className="min-h-[44px] flex-1 rounded-xl border border-border bg-background px-3 text-sm tabular-nums outline-none focus:border-accent"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm tabular-nums outline-none focus:border-accent"
                   />
                 </div>
               </div>
