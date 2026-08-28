@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { sql } from './db';
+import { PAYMENT_METHODS, UNITS } from './types';
 import type { CategoryKind, PaymentMethod, Unit } from './types';
 
 export interface ItemInput {
@@ -20,6 +21,43 @@ export interface GastoInput {
   items: ItemInput[];
 }
 
+const FECHA_RE = /^\d{4}-\d{2}-\d{2}$/;
+const PAYMENT_VALUES = PAYMENT_METHODS.map((m) => m.value);
+const UNIT_VALUES = UNITS.map((u) => u.value);
+
+/**
+ * Las Server Actions son endpoints POST públicos: el formulario ya valida
+ * todo esto del lado del cliente, pero cualquiera que conozca la URL puede
+ * mandar un POST directo sin pasar por la UI. Esta validación es la última
+ * línea de defensa, no la principal (esa sigue siendo la del formulario).
+ */
+function validarGastoInput(input: GastoInput): void {
+  if (!FECHA_RE.test(input.date)) throw new Error('Fecha inválida');
+  if (!Number.isInteger(input.categoryId) || input.categoryId <= 0) {
+    throw new Error('Categoría inválida');
+  }
+  if (input.paymentMethod != null && !PAYMENT_VALUES.includes(input.paymentMethod)) {
+    throw new Error('Medio de pago inválido');
+  }
+  if (input.items.length === 0) {
+    if (!Number.isFinite(input.amount) || input.amount <= 0) {
+      throw new Error('El monto tiene que ser mayor a cero');
+    }
+  } else {
+    for (const item of input.items) {
+      if (!Number.isFinite(item.amount) || item.amount <= 0) {
+        throw new Error('El monto de cada ítem tiene que ser mayor a cero');
+      }
+      if (item.quantity != null && (!Number.isFinite(item.quantity) || item.quantity <= 0)) {
+        throw new Error('La cantidad de cada ítem tiene que ser mayor a cero');
+      }
+      if (item.unit != null && !UNIT_VALUES.includes(item.unit)) {
+        throw new Error('Unidad inválida');
+      }
+    }
+  }
+}
+
 function montoTotal(input: GastoInput): number {
   return input.items.length > 0
     ? input.items.reduce((acc, it) => acc + it.amount, 0)
@@ -36,6 +74,7 @@ async function guardarItems(expenseId: number, items: ItemInput[]): Promise<void
 }
 
 export async function crearGasto(input: GastoInput): Promise<{ id: number }> {
+  validarGastoInput(input);
   const amount = montoTotal(input);
   const rows = (await sql`
     insert into expenses (date, category_id, detail, amount, payment_method)
@@ -52,6 +91,7 @@ export async function crearGasto(input: GastoInput): Promise<{ id: number }> {
 }
 
 export async function actualizarGasto(id: number, input: GastoInput): Promise<void> {
+  validarGastoInput(input);
   const amount = montoTotal(input);
 
   await sql`
@@ -77,12 +117,23 @@ export async function borrarGasto(id: number): Promise<void> {
   revalidatePath('/historial');
 }
 
+function validarNombreCategoria(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('El nombre de la categoría no puede estar vacío');
+  if (trimmed.length > 40) throw new Error('El nombre de la categoría es demasiado largo');
+  return trimmed;
+}
+
+function validarKind(kind: CategoryKind): void {
+  if (kind !== 'comida' && kind !== 'otros') throw new Error('Tipo de categoría inválido');
+}
+
 export async function crearCategoria(
   name: string,
   kind: CategoryKind
 ): Promise<{ id: number; name: string; kind: CategoryKind }> {
-  const trimmed = name.trim();
-  if (!trimmed) throw new Error('El nombre de la categoría no puede estar vacío');
+  const trimmed = validarNombreCategoria(name);
+  validarKind(kind);
 
   const rows = (await sql`
     insert into categories (name, kind)
@@ -96,7 +147,39 @@ export async function crearCategoria(
   return rows[0];
 }
 
+export async function actualizarCategoria(id: number, name: string, kind: CategoryKind): Promise<void> {
+  const trimmed = validarNombreCategoria(name);
+  validarKind(kind);
+
+  await sql`update categories set name = ${trimmed}, kind = ${kind} where id = ${id}`;
+
+  revalidatePath('/nuevo');
+  revalidatePath('/historial');
+  revalidatePath('/configuracion');
+  revalidatePath('/');
+}
+
+/** No se puede borrar una categoría que ya tiene gastos cargados (se pierde el historial). */
+export async function borrarCategoria(id: number): Promise<void> {
+  const rows = (await sql`select count(*)::int as n from expenses where category_id = ${id}`) as {
+    n: number;
+  }[];
+  if (rows[0].n > 0) {
+    throw new Error('No se puede borrar: tiene gastos cargados en esa categoría');
+  }
+
+  await sql`delete from categories where id = ${id}`;
+
+  revalidatePath('/nuevo');
+  revalidatePath('/historial');
+  revalidatePath('/configuracion');
+}
+
 export async function actualizarConfiguracion(input: { monthlyBudget: number | null }): Promise<void> {
+  if (input.monthlyBudget != null && (!Number.isFinite(input.monthlyBudget) || input.monthlyBudget < 0)) {
+    throw new Error('El presupuesto tiene que ser un número válido');
+  }
+
   await sql`
     update settings
     set monthly_budget = ${input.monthlyBudget}
