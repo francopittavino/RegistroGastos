@@ -51,3 +51,23 @@ export function diasTranscurridos(rango: RangoPeriodo): number {
   // período figura como arrancado "hoy mismo, más tarde" que la hora actual.
   return Math.max(1, diffDays(rango.inicio, hasta) + 1);
 }
+
+export interface ProyeccionCalendario {
+  /** Días que faltan desde hoy (sin contar hoy) hasta el último día del mes calendario. */
+  diasRestantes: number;
+  /** Nombre en español del mes siguiente, ej. "septiembre". */
+  mesSiguiente: string;
+}
+
+/**
+ * Días restantes hasta el 1° del mes calendario que viene (sin importar el
+ * período de pago del usuario, que es independiente de esto).
+ */
+export function proyeccionCalendario(hoy: string = hoyISO()): ProyeccionCalendario {
+  const { year, month, day } = parseISO(hoy);
+  const ultimoDiaDelMes = new Date(year, month + 1, 0).getDate();
+  const diasRestantes = ultimoDiaDelMes - day;
+  const primerDiaProximoMes = new Date(year, month + 1, 1);
+  const mesSiguiente = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(primerDiaProximoMes);
+  return { diasRestantes, mesSiguiente };
+}
