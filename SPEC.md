@@ -19,7 +19,7 @@ porque la URL no se comparte). Deploy en Vercel conectado a GitHub
 | `expenses` | Un gasto: fecha, categoría, detalle, monto, medio de pago opcional |
 | `expense_items` | Desglose opcional de un gasto en ítems (ej. "leche", "pan"), con cantidad + unidad opcionales (kg, g, l, ml, unidad, paquete) |
 | `categories` | Nombre + `kind` (`comida` \| `otros`). Seedeadas: Supermercado, Verdulería, Delivery/Restaurante (comida); Vivienda, Servicios, Transporte, Salud, Ocio, Otros (otros). El usuario puede crear más desde el formulario de carga |
-| `periods` | Cada fila es un "mes": arranca cuando el usuario toca "Cerrar mes" en Configuración. No hay día fijo — el fin de un período es el inicio del siguiente, o "hoy" si es el actual |
+| `periods` | Cada fila es un "mes": arranca en el instante exacto (día y hora) en que el usuario toca "Cerrar mes" en Configuración. El fin de un período es el inicio del siguiente, o "ahora" si es el actual. Los gastos se agrupan en un período por su `created_at` real (el momento en que se cargaron), no por la fecha editable del gasto |
 | `settings` | Presupuesto total del período (una sola fila) |
 
 **Pantallas**:
@@ -28,7 +28,9 @@ porque la URL no se comparte). Deploy en Vercel conectado a GitHub
   solo comida) con gráfico de torta por categoría; total de comida y su
   promedio diario; presupuesto restante y una proyección "si seguís a este
   ritmo, para el 1° de [mes que viene] te van a quedar/pasar $X" (anclada al
-  calendario, no al período de pago); botón fijo "+ Cargar gasto"
+  calendario, no al período de pago); navegación `‹ ›` para ver períodos
+  anteriores (sin la proyección, que solo aplica al período abierto); botón
+  fijo "+ Cargar gasto"
 - **Cargar gasto** (`/nuevo`) — monto único o desglose en ítems (cada ítem
   puede llevar cantidad + unidad, además de detalle y monto), categorías
   como botones (con creación de categoría nueva inline), medio de pago y
@@ -37,15 +39,19 @@ porque la URL no se comparte). Deploy en Vercel conectado a GitHub
 - **Historial** (`/historial`) — dos vistas con tabs, "Gastos" (lista del
   período elegido, navegación `‹ ›` entre períodos incluidos los ya
   cerrados, filtro por categoría en un panel que se desliza desde la
-  izquierda, tap para editar/borrar) y "Comida" (cantidades totales
+  izquierda, tacho de basura por fila para borrar sin entrar a editar, tap
+  en el resto de la fila para editar) y "Comida" (cantidades totales
   cargadas por ítem — ej. "Arroz — 5 kg" — para planear la compra del mes
-  siguiente). Un período ya cerrado se puede borrar (con confirmación
-  inline) — nunca el actual. Borrar un período no borra sus gastos: al
-  desaparecer ese límite, esas fechas pasan a formar parte del período
-  anterior.
+  siguiente). Editar o borrar un gasto funciona igual sin importar si su
+  período ya está cerrado. Un período ya cerrado se puede borrar (con
+  confirmación inline) — nunca el actual. Borrar un período no borra sus
+  gastos: al desaparecer ese límite, esos gastos pasan a formar parte del
+  período anterior.
 - **Configuración** (`/configuracion`) — presupuesto del período, botón
   "Cobré: cerrar mes y empezar de nuevo" (con confirmación inline, no un
-  `confirm()` nativo)
+  `confirm()` nativo). Cierra en el instante exacto en que se toca el
+  botón, así que cerrar dos veces el mismo día arranca igual un período
+  nuevo distinto desde ese momento
 
 **Formato**: moneda `$45.000`, fechas `DD/MM/AAAA`, toda la UI en español,
 targets táctiles ≥44px, "hoy" siempre en horario argentino sin importar el

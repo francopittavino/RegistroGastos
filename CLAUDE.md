@@ -55,13 +55,28 @@ las pantallas y lo que queda explícitamente fuera del V1.
 - **Categorías**: `kind` es `'comida' | 'otros'`, nunca `'group'` (palabra
   reservada en SQL). El total de "comida" en la Home es la suma de gastos
   cuya categoría tiene `kind = 'comida'`.
-- **No hay "día de inicio de mes" fijo**: los períodos viven en la tabla
-  `periods` (una fila por cada vez que el usuario cerró el mes, con
-  `start_date`). El período actual es siempre el de `start_date` más
-  reciente, y su fin es "hoy" (todavía abierto) o el `start_date` del
-  siguiente período si ya se cerró. Toda esta lógica vive en `lib/periods.ts`
-  (`rangoDePeriodo`, `diasTranscurridos`) — no reintroduzcas un cálculo de
-  "día X del mes" basado en el calendario.
+- **Los períodos tienen precisión de timestamp, no de día**: viven en la
+  tabla `periods` (una fila por cada vez que el usuario cerró el mes, con
+  `start_at timestamptz`). El período actual es siempre el de `start_at`
+  más reciente, y su fin es `null` (todavía abierto, sin límite) o el
+  `start_at` del siguiente período si ya se cerró. Cerrar el período dos
+  veces el mismo día crea igual un período nuevo distinto (antes era por
+  `date`, con un `unique` que lo bloqueaba — ya no). Toda esta lógica vive
+  en `lib/periods.ts` (`rangoDePeriodo`, `diasTranscurridos`, que ahora
+  devuelve días con decimales) — no reintroduzcas un cálculo de "día X del
+  mes" basado en el calendario.
+- **Un gasto pertenece a un período por su `created_at` real, no por su
+  `date`**: `date` es editable (el usuario puede backdatear un gasto) y no
+  debe afectar a qué período pertenece — lo que importa es el momento en
+  que se cargó. Por eso `getExpensesInRange`/`getTotales`/
+  `getTotalesPorCategoria`/`getResumenComida` en `lib/queries.ts` filtran
+  por `e.created_at`, no por `e.date`. `date` se sigue usando para mostrar
+  y ordenar la lista de gastos, solo no para decidir el período.
+- **`hasta` es `string | null` en las queries de rango**: `null` significa
+  "sin límite superior" (el período actual, todavía abierto) — las queries
+  arman dos variantes de SQL (con y sin el `and ... < hasta`) en vez de
+  intentar splicear condicionalmente un fragmento dentro de un mismo
+  template de `sql` (el driver de Neon no lo soporta bien).
 - **La proyección de Home es distinta del período de pago**: usa
   `proyeccionCalendario()` (también en `lib/periods.ts`), que se ancla al 1°
   del mes calendario que viene, independiente de cuándo el usuario cobra.
@@ -82,6 +97,9 @@ las pantallas y lo que queda explícitamente fuera del V1.
   guardado por un campo secundario.
 - **No hay CSV.** Se sacó del V1 original a pedido del usuario — no lo
   reintroduzcas sin que lo pida explícitamente.
+- **Editar/borrar un gasto nunca depende del período**: no hay ni debe
+  haber ninguna restricción en `formulario-gasto.tsx`/`actions.ts` que
+  bloquee editar o borrar un gasto de un período ya cerrado.
 
 ## Base de datos
 
