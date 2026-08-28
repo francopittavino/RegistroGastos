@@ -21,9 +21,9 @@ export async function getSettings(): Promise<Settings> {
 /** Todos los períodos, ordenados del más viejo al más nuevo (el actual es el último). */
 export async function getPeriods(): Promise<Period[]> {
   const rows = (await sql`
-    select id, to_char(start_date, 'YYYY-MM-DD') as start_date from periods order by start_date asc
-  `) as { id: number; start_date: string }[];
-  return rows.map((r) => ({ id: r.id, startDate: r.start_date }));
+    select id, start_at from periods order by start_at asc
+  `) as { id: number; start_at: string | Date }[];
+  return rows.map((r) => ({ id: r.id, startAt: new Date(r.start_at).toISOString() }));
 }
 
 interface ExpenseRow {
@@ -56,17 +56,32 @@ function mapItemRow(it: ItemRow): ExpenseItem {
   };
 }
 
-/** Trae los gastos en [desde, hasta), con sus ítems de desglose si tienen. */
-export async function getExpensesInRange(desde: string, hasta: string): Promise<Expense[]> {
-  const rows = (await sql`
-    select
-      e.id, to_char(e.date, 'YYYY-MM-DD') as date, e.category_id, c.name as category_name, c.kind as category_kind,
-      e.detail, e.amount, e.payment_method
-    from expenses e
-    join categories c on c.id = e.category_id
-    where e.date >= ${desde} and e.date < ${hasta}
-    order by e.date desc, e.id desc
-  `) as ExpenseRow[];
+/**
+ * Trae los gastos cuyo `created_at` (el momento real en que se cargaron, no
+ * la fecha editable del gasto) cae en [desde, hasta), con sus ítems de
+ * desglose si tienen. `hasta` null = sin límite superior (período actual,
+ * todavía abierto).
+ */
+export async function getExpensesInRange(desde: string, hasta: string | null): Promise<Expense[]> {
+  const rows = (hasta
+    ? await sql`
+        select
+          e.id, to_char(e.date, 'YYYY-MM-DD') as date, e.category_id, c.name as category_name, c.kind as category_kind,
+          e.detail, e.amount, e.payment_method
+        from expenses e
+        join categories c on c.id = e.category_id
+        where e.created_at >= ${desde} and e.created_at < ${hasta}
+        order by e.date desc, e.id desc
+      `
+    : await sql`
+        select
+          e.id, to_char(e.date, 'YYYY-MM-DD') as date, e.category_id, c.name as category_name, c.kind as category_kind,
+          e.detail, e.amount, e.payment_method
+        from expenses e
+        join categories c on c.id = e.category_id
+        where e.created_at >= ${desde}
+        order by e.date desc, e.id desc
+      `) as ExpenseRow[];
 
   if (rows.length === 0) return [];
 
@@ -133,15 +148,24 @@ export interface Totales {
   totalTodo: number;
 }
 
-export async function getTotales(desde: string, hasta: string): Promise<Totales> {
-  const rows = (await sql`
-    select
-      coalesce(sum(e.amount) filter (where c.kind = 'comida'), 0) as total_comida,
-      coalesce(sum(e.amount), 0) as total_todo
-    from expenses e
-    join categories c on c.id = e.category_id
-    where e.date >= ${desde} and e.date < ${hasta}
-  `) as { total_comida: string; total_todo: string }[];
+export async function getTotales(desde: string, hasta: string | null): Promise<Totales> {
+  const rows = (hasta
+    ? await sql`
+        select
+          coalesce(sum(e.amount) filter (where c.kind = 'comida'), 0) as total_comida,
+          coalesce(sum(e.amount), 0) as total_todo
+        from expenses e
+        join categories c on c.id = e.category_id
+        where e.created_at >= ${desde} and e.created_at < ${hasta}
+      `
+    : await sql`
+        select
+          coalesce(sum(e.amount) filter (where c.kind = 'comida'), 0) as total_comida,
+          coalesce(sum(e.amount), 0) as total_todo
+        from expenses e
+        join categories c on c.id = e.category_id
+        where e.created_at >= ${desde}
+      `) as { total_comida: string; total_todo: string }[];
   const row = rows[0];
   return {
     totalComida: Number(row?.total_comida ?? 0),
@@ -157,15 +181,24 @@ export interface TotalPorCategoria {
 }
 
 /** Total gastado por categoría en [desde, hasta), de mayor a menor. Solo categorías con gasto > 0. */
-export async function getTotalesPorCategoria(desde: string, hasta: string): Promise<TotalPorCategoria[]> {
-  const rows = (await sql`
-    select c.id as category_id, c.name as category_name, c.kind, sum(e.amount) as total
-    from expenses e
-    join categories c on c.id = e.category_id
-    where e.date >= ${desde} and e.date < ${hasta}
-    group by c.id, c.name, c.kind
-    order by total desc
-  `) as { category_id: number; category_name: string; kind: 'comida' | 'otros'; total: string }[];
+export async function getTotalesPorCategoria(desde: string, hasta: string | null): Promise<TotalPorCategoria[]> {
+  const rows = (hasta
+    ? await sql`
+        select c.id as category_id, c.name as category_name, c.kind, sum(e.amount) as total
+        from expenses e
+        join categories c on c.id = e.category_id
+        where e.created_at >= ${desde} and e.created_at < ${hasta}
+        group by c.id, c.name, c.kind
+        order by total desc
+      `
+    : await sql`
+        select c.id as category_id, c.name as category_name, c.kind, sum(e.amount) as total
+        from expenses e
+        join categories c on c.id = e.category_id
+        where e.created_at >= ${desde}
+        group by c.id, c.name, c.kind
+        order by total desc
+      `) as { category_id: number; category_name: string; kind: 'comida' | 'otros'; total: string }[];
 
   return rows.map((r) => ({
     categoryId: r.category_id,
@@ -188,23 +221,40 @@ export interface ResumenComidaItem {
  * de gastos en categorías de comida. Pensado para planear la compra del mes
  * siguiente (ej. "compraste 5kg de arroz este mes").
  */
-export async function getResumenComida(desde: string, hasta: string): Promise<ResumenComidaItem[]> {
-  const rows = (await sql`
-    select
-      lower(trim(i.detail)) as detalle,
-      i.unit,
-      sum(i.quantity) as cantidad_total,
-      sum(i.amount) as monto_total
-    from expense_items i
-    join expenses e on e.id = i.expense_id
-    join categories c on c.id = e.category_id
-    where e.date >= ${desde} and e.date < ${hasta}
-      and c.kind = 'comida'
-      and i.quantity is not null
-      and i.unit is not null
-    group by lower(trim(i.detail)), i.unit
-    order by cantidad_total desc
-  `) as { detalle: string; unit: Unit; cantidad_total: string; monto_total: string }[];
+export async function getResumenComida(desde: string, hasta: string | null): Promise<ResumenComidaItem[]> {
+  const rows = (hasta
+    ? await sql`
+        select
+          lower(trim(i.detail)) as detalle,
+          i.unit,
+          sum(i.quantity) as cantidad_total,
+          sum(i.amount) as monto_total
+        from expense_items i
+        join expenses e on e.id = i.expense_id
+        join categories c on c.id = e.category_id
+        where e.created_at >= ${desde} and e.created_at < ${hasta}
+          and c.kind = 'comida'
+          and i.quantity is not null
+          and i.unit is not null
+        group by lower(trim(i.detail)), i.unit
+        order by cantidad_total desc
+      `
+    : await sql`
+        select
+          lower(trim(i.detail)) as detalle,
+          i.unit,
+          sum(i.quantity) as cantidad_total,
+          sum(i.amount) as monto_total
+        from expense_items i
+        join expenses e on e.id = i.expense_id
+        join categories c on c.id = e.category_id
+        where e.created_at >= ${desde}
+          and c.kind = 'comida'
+          and i.quantity is not null
+          and i.unit is not null
+        group by lower(trim(i.detail)), i.unit
+        order by cantidad_total desc
+      `) as { detalle: string; unit: Unit; cantidad_total: string; monto_total: string }[];
 
   return rows.map((r) => ({
     detalle: r.detalle,

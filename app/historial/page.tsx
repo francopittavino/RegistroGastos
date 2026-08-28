@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { getCategories, getExpensesInRange, getPeriods, getResumenComida } from '@/lib/queries';
 import { rangoDePeriodo } from '@/lib/periods';
-import { formatFecha, formatMonto } from '@/lib/format';
+import { formatMonto } from '@/lib/format';
+import { NavPeriodo } from '@/app/components/nav-periodo';
 import { FiltroCategoria } from './filtro-categoria';
 import { BorrarPeriodo } from './borrar-periodo';
+import { FilaGasto } from './fila-gasto';
 
 // El período actual (sin período elegido en la URL) depende de la fecha de hoy.
 export const dynamic = 'force-dynamic';
@@ -44,42 +46,11 @@ export default async function HistorialPage({ searchParams }: PageProps<'/histor
     return qs ? `/historial?${qs}` : '/historial';
   }
 
-  const finLabel = rango.esActual ? 'hoy' : formatFecha(sumarUnDia(rango.fin, -1));
-
   return (
     <div className="flex flex-col gap-4 p-4">
       <h1 className="text-lg font-semibold">Historial</h1>
 
-      <div className="flex items-center justify-between rounded-xl border border-border bg-surface px-2 py-2">
-        {rango.hayAnterior ? (
-          <Link
-            href={hrefPeriodo(rango.index - 1)}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-lg"
-            aria-label="Período anterior"
-          >
-            ‹
-          </Link>
-        ) : (
-          <span className="min-w-[44px]" />
-        )}
-        <div className="text-center text-sm">
-          <p className="font-medium">
-            {formatFecha(rango.inicio)} – {finLabel}
-          </p>
-          {rango.esActual ? <p className="text-xs text-muted">Período actual</p> : null}
-        </div>
-        {rango.haySiguiente ? (
-          <Link
-            href={hrefPeriodo(rango.index + 1)}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-lg"
-            aria-label="Período siguiente"
-          >
-            ›
-          </Link>
-        ) : (
-          <span className="min-w-[44px]" />
-        )}
-      </div>
+      <NavPeriodo rango={rango} hrefPeriodo={hrefPeriodo} />
 
       {!rango.esActual ? <BorrarPeriodo periodoId={rango.periodo.id} /> : null}
 
@@ -125,7 +96,7 @@ async function ListaDeGastos({
   paramsBase,
 }: {
   desde: string;
-  hasta: string;
+  hasta: string | null;
   categorias: Awaited<ReturnType<typeof getCategories>>;
   categoriaId: number | null;
   paramsBase: Record<string, string>;
@@ -142,21 +113,7 @@ async function ListaDeGastos({
       ) : (
         <ul className="flex flex-col gap-2">
           {gastos.map((g) => (
-            <li key={g.id}>
-              <Link
-                href={`/historial/${g.id}/editar`}
-                className="flex min-h-[44px] items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">
-                    {g.categoryName}
-                    {g.detail ? <span className="text-muted"> · {g.detail}</span> : null}
-                  </p>
-                  <p className="text-xs text-muted">{formatFecha(g.date)}</p>
-                </div>
-                <p className="shrink-0 text-base font-semibold tabular-nums">{formatMonto(g.amount)}</p>
-              </Link>
-            </li>
+            <FilaGasto key={g.id} gasto={g} />
           ))}
         </ul>
       )}
@@ -164,7 +121,7 @@ async function ListaDeGastos({
   );
 }
 
-async function ResumenComida({ desde, hasta }: { desde: string; hasta: string }) {
+async function ResumenComida({ desde, hasta }: { desde: string; hasta: string | null }) {
   const resumen = await getResumenComida(desde, hasta);
 
   if (resumen.length === 0) {
@@ -194,10 +151,4 @@ async function ResumenComida({ desde, hasta }: { desde: string; hasta: string })
       ))}
     </ul>
   );
-}
-
-function sumarUnDia(iso: string, dias: number): string {
-  const [y, m, d] = iso.split('-').map(Number);
-  const date = new Date(y, m - 1, d + dias);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }

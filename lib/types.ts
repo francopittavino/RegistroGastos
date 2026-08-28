@@ -52,19 +52,20 @@ export interface Settings {
 
 export interface Period {
   id: number;
-  startDate: string;
+  /** Instante exacto (ISO, con hora) en que arrancó el período. */
+  startAt: string;
 }
 
 export interface RangoPeriodo {
   periodo: Period;
-  /** Índice del período dentro de la lista completa, ordenada por fecha. */
+  /** Índice del período dentro de la lista completa, ordenada por inicio. */
   index: number;
   /** true si es el período abierto actualmente (el más reciente). */
   esActual: boolean;
   hayAnterior: boolean;
   haySiguiente: boolean;
-  /** Primer día del período, inclusive. */
+  /** Instante en que arrancó el período, inclusive. */
   inicio: string;
-  /** Primer día después del período, exclusive (hoy + 1 si es el actual). */
-  fin: string;
+  /** Instante en que arrancó el siguiente período, exclusive. null si es el actual (todavía abierto, sin fin). */
+  fin: string | null;
 }

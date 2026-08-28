@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { actualizarConfiguracion, cerrarMes } from '@/lib/actions';
-import { formatFecha } from '@/lib/format';
+import { formatFechaHora } from '@/lib/format';
 import type { Settings } from '@/lib/types';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ConfiguracionForm({ settingsIniciales, inicioPeriodoActual }: Props) {
+  const router = useRouter();
   const [monthlyBudget, setMonthlyBudget] = useState(
     settingsIniciales.monthlyBudget != null ? String(settingsIniciales.monthlyBudget) : ''
   );
@@ -48,6 +50,7 @@ export function ConfiguracionForm({ settingsIniciales, inicioPeriodoActual }: Pr
       await cerrarMes();
       setConfirmandoCierre(false);
       setCerrado(true);
+      router.refresh();
     });
   }
 
@@ -57,15 +60,15 @@ export function ConfiguracionForm({ settingsIniciales, inicioPeriodoActual }: Pr
 
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
         <h2 className="text-sm font-medium">Período actual</h2>
-        <p className="text-sm text-muted">Empezó el {formatFecha(inicioPeriodoActual)}.</p>
+        <p className="text-sm text-muted">Empezó el {formatFechaHora(inicioPeriodoActual)}.</p>
 
         {cerrado ? (
-          <p className="text-sm text-accent">Arrancó un período nuevo hoy ✓</p>
+          <p className="text-sm text-accent">Arrancó un período nuevo recién ✓</p>
         ) : confirmandoCierre ? (
           <div className="flex flex-col gap-2">
             <p className="text-sm">
-              ¿Cerrar este período y arrancar uno nuevo hoy? Los gastos ya cargados no se borran, quedan
-              guardados en el período que se cierra.
+              ¿Cerrar este período ahora mismo y arrancar uno nuevo? Los gastos ya cargados no se
+              borran, quedan guardados en el período que se cierra.
             </p>
             <div className="flex gap-2">
               <button

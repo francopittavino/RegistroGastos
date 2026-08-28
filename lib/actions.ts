@@ -2,7 +2,6 @@
 
 import { revalidatePath } from 'next/cache';
 import { sql } from './db';
-import { hoyISO } from './format';
 import type { CategoryKind, PaymentMethod, Unit } from './types';
 
 export interface ItemInput {
@@ -109,14 +108,13 @@ export async function actualizarConfiguracion(input: { monthlyBudget: number | n
 }
 
 /**
- * Cierra el período actual y arranca uno nuevo desde hoy. Si ya existe un
- * período que empieza hoy (doble click, por ejemplo), no hace nada.
+ * Cierra el período actual y arranca uno nuevo en este mismo instante (con
+ * precisión de segundo, no solo de día): los gastos cargados antes de este
+ * momento quedan en el período que se cierra, y los que se carguen de acá
+ * en adelante caen en el nuevo, aunque sea el mismo día.
  */
 export async function cerrarMes(): Promise<void> {
-  await sql`
-    insert into periods (start_date) values (${hoyISO()})
-    on conflict (start_date) do nothing
-  `;
+  await sql`insert into periods (start_at) values (now())`;
 
   revalidatePath('/');
   revalidatePath('/historial');
@@ -132,7 +130,7 @@ export async function cerrarMes(): Promise<void> {
  */
 export async function borrarPeriodo(id: number): Promise<void> {
   const periodos = (await sql`
-    select id from periods order by start_date asc
+    select id from periods order by start_at asc
   `) as { id: number }[];
 
   const esActual = periodos.at(-1)?.id === id;

@@ -34,14 +34,23 @@ create table if not exists settings (
   constraint settings_single_row check (id = 1)
 );
 
--- Un período arranca el día que el usuario aprieta "Cerrar mes" (o el día de la
--- primera migración, para el período inicial). No tiene fecha de fin fija: el
--- fin de un período es el start_date del siguiente, o "hoy" si es el actual.
+-- Un período arranca en el momento exacto (día y hora) en que el usuario
+-- aprieta "Cerrar mes" (o el momento de la primera migración, para el
+-- período inicial). No tiene fin fijo: el fin de un período es el start_at
+-- del siguiente, o "ahora" si es el actual. Se guarda con precisión de
+-- timestamp (no solo la fecha) para que cerrar el período dos veces el
+-- mismo día arranque igual un período nuevo desde ese momento.
 create table if not exists periods (
   id serial primary key,
-  start_date date not null unique,
+  start_date date,
   created_at timestamptz not null default now()
 );
+
+alter table periods add column if not exists start_at timestamptz;
+update periods set start_at = (start_date::timestamp at time zone 'America/Argentina/Buenos_Aires')
+  where start_at is null and start_date is not null;
+alter table periods alter column start_at set not null;
+alter table periods drop column if exists start_date;
 
 alter table settings drop column if exists month_start_day;
 
@@ -60,9 +69,6 @@ on conflict (name) do nothing;
 insert into settings (id, monthly_budget) values (1, null)
 on conflict (id) do nothing;
 
--- Se usa la fecha de Argentina, no la del servidor (Vercel/Neon corren en UTC),
--- para que coincida con hoyISO() del lado de la app y no arranque "un día
--- adelantado".
-insert into periods (start_date)
-select (now() at time zone 'America/Argentina/Buenos_Aires')::date
+insert into periods (start_at)
+select now()
 where not exists (select 1 from periods);
