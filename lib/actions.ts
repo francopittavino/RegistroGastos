@@ -122,3 +122,24 @@ export async function cerrarMes(): Promise<void> {
   revalidatePath('/historial');
   revalidatePath('/configuracion');
 }
+
+/**
+ * Borra un período ya cerrado (nunca el actual, que sigue abierto). No
+ * borra los gastos que quedaron dentro de ese rango de fechas: al
+ * desaparecer el límite, esos días pasan a formar parte del período
+ * anterior (los rangos se calculan siempre a partir de la lista de
+ * períodos que queda, no hace falta migrar nada).
+ */
+export async function borrarPeriodo(id: number): Promise<void> {
+  const periodos = (await sql`
+    select id from periods order by start_date asc
+  `) as { id: number }[];
+
+  const esActual = periodos.at(-1)?.id === id;
+  if (esActual) throw new Error('No se puede borrar el período actual');
+
+  await sql`delete from periods where id = ${id}`;
+
+  revalidatePath('/');
+  revalidatePath('/historial');
+}

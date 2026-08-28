@@ -3,6 +3,7 @@ import { getCategories, getExpensesInRange, getPeriods, getResumenComida } from 
 import { rangoDePeriodo } from '@/lib/periods';
 import { formatFecha, formatMonto } from '@/lib/format';
 import { FiltroCategoria } from './filtro-categoria';
+import { BorrarPeriodo } from './borrar-periodo';
 
 // El período actual (sin período elegido en la URL) depende de la fecha de hoy.
 export const dynamic = 'force-dynamic';
@@ -79,6 +80,8 @@ export default async function HistorialPage({ searchParams }: PageProps<'/histor
           <span className="min-w-[44px]" />
         )}
       </div>
+
+      {!rango.esActual ? <BorrarPeriodo periodoId={rango.periodo.id} /> : null}
 
       <div className="flex gap-2 rounded-xl border border-border bg-surface p-1">
         <Link

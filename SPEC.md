@@ -39,7 +39,10 @@ porque la URL no se comparte). Deploy en Vercel conectado a GitHub
   cerrados, filtro por categoría en un panel que se desliza desde la
   izquierda, tap para editar/borrar) y "Comida" (cantidades totales
   cargadas por ítem — ej. "Arroz — 5 kg" — para planear la compra del mes
-  siguiente)
+  siguiente). Un período ya cerrado se puede borrar (con confirmación
+  inline) — nunca el actual. Borrar un período no borra sus gastos: al
+  desaparecer ese límite, esas fechas pasan a formar parte del período
+  anterior.
 - **Configuración** (`/configuracion`) — presupuesto del período, botón
   "Cobré: cerrar mes y empezar de nuevo" (con confirmación inline, no un
   `confirm()` nativo)
@@ -66,20 +69,16 @@ interesan, no un compromiso de trabajo.
    viene), sin relación con el período de pago real. Con 2-3 períodos
    cerrados se podría ofrecer también una proyección anclada a cuándo
    históricamente cobrás.
-3. **Deshacer "Cerrar mes".** Hoy es una acción sin vuelta atrás desde la
-   UI (se puede corregir a mano en la base, pero no desde la app).
-4. **Recordatorio de carga.** Notificación push (la PWA ya lo permite en
+3. **Recordatorio de carga.** Notificación push (la PWA ya lo permite en
    principio) si pasó un día entero sin cargar ningún gasto. Requeriría
    pedir permiso de notificaciones, que hoy no se pide.
-5. **Comparación entre períodos ajustada por inflación.** Se dejó afuera a
+4. **Comparación entre períodos ajustada por inflación.** Se dejó afuera a
    propósito porque comparar montos nominales en Argentina es engañoso. Si
    en algún momento te interesa, lo más simple sería ingresar manualmente
    un índice de referencia (o un ajuste por mes) en vez de comparar montos
    crudos.
-6. **Unidades personalizadas.** Hoy la unidad de cantidad es una lista fija
+5. **Unidades personalizadas.** Hoy la unidad de cantidad es una lista fija
    (kg, g, l, ml, unidad, paquete). Si compras algo que no encaja bien ahí
    (ej. "docena", "atado"), se podría permitir texto libre.
 
-Si tuviera que priorizar dos: **editar categorías** y **deshacer "Cerrar
-mes"** (para poder corregir un cierre hecho por error, sin tener que tocar
-la base a mano).
+Si tuviera que priorizar uno: **editar categorías**.
