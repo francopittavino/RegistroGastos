@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function ErrorPage({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -20,7 +20,7 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
       </div>
       <button
         type="button"
-        onClick={reset}
+        onClick={retry}
         className="min-h-[48px] rounded-xl bg-accent px-6 text-sm font-semibold text-accent-foreground"
       >
         Reintentar

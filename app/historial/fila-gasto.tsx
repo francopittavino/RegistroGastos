@@ -5,42 +5,52 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { borrarGasto } from '@/lib/actions';
 import { formatFecha, formatMonto } from '@/lib/format';
+import { mensajeDeError } from '@/lib/errors';
 import { IconTacho } from '@/app/components/icons';
 import type { Expense } from '@/lib/types';
 
 export function FilaGasto({ gasto }: { gasto: Expense }) {
   const router = useRouter();
   const [confirmando, setConfirmando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function confirmar() {
+    setError(null);
     startTransition(async () => {
-      await borrarGasto(gasto.id);
-      router.refresh();
+      try {
+        await borrarGasto(gasto.id);
+        router.refresh();
+      } catch (e) {
+        setError(mensajeDeError(e, 'No se pudo borrar el gasto'));
+      }
     });
   }
 
   if (confirmando) {
     return (
-      <li className="flex items-center justify-between gap-2 rounded-xl border border-danger/50 bg-surface px-4 py-3">
-        <span className="text-sm">¿Borrar este gasto?</span>
-        <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={confirmar}
-            disabled={pending}
-            className="min-h-[36px] rounded-lg bg-danger px-3 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {pending ? 'Borrando…' : 'Sí'}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirmando(false)}
-            className="min-h-[36px] rounded-lg border border-border px-3 text-sm font-semibold"
-          >
-            No
-          </button>
+      <li className="flex flex-col gap-1 rounded-xl border border-danger/50 bg-surface px-4 py-3">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm">¿Borrar este gasto?</span>
+          <div className="flex shrink-0 gap-2">
+            <button
+              type="button"
+              onClick={confirmar}
+              disabled={pending}
+              className="min-h-[36px] rounded-lg bg-danger px-3 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {pending ? 'Borrando…' : 'Sí'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmando(false)}
+              className="min-h-[36px] rounded-lg border border-border px-3 text-sm font-semibold"
+            >
+              No
+            </button>
+          </div>
         </div>
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
       </li>
     );
   }

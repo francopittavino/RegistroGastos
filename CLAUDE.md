@@ -112,6 +112,16 @@ las pantallas y lo que queda explícitamente fuera del V1.
 - **`app/error.tsx` y `app/loading.tsx`** cubren toda la app (no hay
   versiones por ruta) — si agregás una ruta nueva, hereda esas por
   default, no dupliques a menos que necesites un mensaje específico.
+  `error.tsx` usa la prop `retry` (estable desde Next 16.3.0), no `reset`.
+- **Mensajes de error específicos, no genéricos**: todo catch de una
+  Server Action en un componente cliente usa `mensajeDeError(e, fallback)`
+  de `lib/errors.ts` en vez de un string fijo. Esa función devuelve un
+  aviso de "sin conexión" si `navigator.onLine` es `false`, si no el
+  `.message` del `Error` tirado por la action (los `throw new Error(...)`
+  de Server Actions no se redactan en producción como sí pasa con errores
+  de render de Server Components), y solo si no hay nada de eso cae al
+  `fallback`. Si agregás un catch nuevo alrededor de una action, usá este
+  helper — no vuelvas a escribir un mensaje genérico a mano.
 
 ## Base de datos
 

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { actualizarConfiguracion, cerrarMes } from '@/lib/actions';
 import { formatFechaHora } from '@/lib/format';
+import { mensajeDeError } from '@/lib/errors';
 import type { Settings } from '@/lib/types';
 
 interface Props {
@@ -23,6 +24,7 @@ export function ConfiguracionForm({ settingsIniciales, inicioPeriodoActual }: Pr
   const [confirmandoCierre, setConfirmandoCierre] = useState(false);
   const [cerrando, startCerrarTransition] = useTransition();
   const [cerrado, setCerrado] = useState(false);
+  const [errorCierre, setErrorCierre] = useState<string | null>(null);
 
   function guardarConfiguracion() {
     setError(null);
@@ -39,18 +41,23 @@ export function ConfiguracionForm({ settingsIniciales, inicioPeriodoActual }: Pr
         await actualizarConfiguracion({ monthlyBudget: presupuesto });
         setGuardadoOk(true);
         setTimeout(() => setGuardadoOk(false), 2000);
-      } catch {
-        setError('No se pudo guardar la configuración');
+      } catch (e) {
+        setError(mensajeDeError(e, 'No se pudo guardar la configuración'));
       }
     });
   }
 
   function confirmarCierreDeMes() {
+    setErrorCierre(null);
     startCerrarTransition(async () => {
-      await cerrarMes();
-      setConfirmandoCierre(false);
-      setCerrado(true);
-      router.refresh();
+      try {
+        await cerrarMes();
+        setConfirmandoCierre(false);
+        setCerrado(true);
+        router.refresh();
+      } catch (e) {
+        setErrorCierre(mensajeDeError(e, 'No se pudo cerrar el período'));
+      }
     });
   }
 
@@ -61,6 +68,8 @@ export function ConfiguracionForm({ settingsIniciales, inicioPeriodoActual }: Pr
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
         <h2 className="text-sm font-medium">Período actual</h2>
         <p className="text-sm text-muted">Empezó el {formatFechaHora(inicioPeriodoActual)}.</p>
+
+        {errorCierre ? <p className="text-sm text-danger">{errorCierre}</p> : null}
 
         {cerrado ? (
           <p className="text-sm text-accent">Arrancó un período nuevo recién ✓</p>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { actualizarCategoria, borrarCategoria } from '@/lib/actions';
+import { mensajeDeError } from '@/lib/errors';
 import { IconTacho, IconLapiz } from '@/app/components/icons';
 import type { CategoryKind } from '@/lib/types';
 import type { CategoryConUso } from '@/lib/queries';
@@ -37,7 +38,7 @@ export function Categorias({ categoriasIniciales }: { categoriasIniciales: Categ
         setEditandoId(null);
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'No se pudo guardar');
+        setError(mensajeDeError(e, 'No se pudo guardar'));
       }
     });
   }
@@ -51,7 +52,7 @@ export function Categorias({ categoriasIniciales }: { categoriasIniciales: Categ
         setConfirmandoBorrarId(null);
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'No se pudo borrar');
+        setError(mensajeDeError(e, 'No se pudo borrar'));
         setConfirmandoBorrarId(null);
       }
     });

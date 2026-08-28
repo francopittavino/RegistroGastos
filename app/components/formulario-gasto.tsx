@@ -13,6 +13,7 @@ import {
   type Unit,
 } from '@/lib/types';
 import { hoyISO, formatMonto } from '@/lib/format';
+import { mensajeDeError } from '@/lib/errors';
 
 interface Props {
   categoriasIniciales: Category[];
@@ -147,8 +148,8 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
           setConfirmacion(true);
           setTimeout(() => setConfirmacion(false), 2000);
         }
-      } catch {
-        setError('No se pudo guardar el gasto. Probá de nuevo.');
+      } catch (e) {
+        setError(mensajeDeError(e, 'No se pudo guardar el gasto. Probá de nuevo.'));
       }
     });
   }
@@ -159,8 +160,8 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
       try {
         await borrarGasto(gastoExistente.id);
         router.push('/historial');
-      } catch {
-        setError('No se pudo borrar el gasto.');
+      } catch (e) {
+        setError(mensajeDeError(e, 'No se pudo borrar el gasto.'));
       }
     });
   }
@@ -182,8 +183,8 @@ export function FormularioGasto({ categoriasIniciales, gastoExistente }: Props) 
         setCategoriaId(nueva.id);
         setNombreNuevaCategoria('');
         setCreandoCategoria(false);
-      } catch {
-        setError('No se pudo crear la categoría');
+      } catch (e) {
+        setError(mensajeDeError(e, 'No se pudo crear la categoría'));
       }
     });
   }

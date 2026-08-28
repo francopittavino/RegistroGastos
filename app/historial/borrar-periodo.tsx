@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { borrarPeriodo } from '@/lib/actions';
+import { mensajeDeError } from '@/lib/errors';
 
 export function BorrarPeriodo({ periodoId }: { periodoId: number }) {
   const router = useRouter();
@@ -15,8 +16,8 @@ export function BorrarPeriodo({ periodoId }: { periodoId: number }) {
       try {
         await borrarPeriodo(periodoId);
         router.push('/historial');
-      } catch {
-        setError('No se pudo borrar el período');
+      } catch (e) {
+        setError(mensajeDeError(e, 'No se pudo borrar el período'));
         setConfirmando(false);
       }
     });
