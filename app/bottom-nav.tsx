@@ -3,52 +3,52 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const ITEMS = [
+const IZQUIERDA = [
   { href: '/', label: 'Inicio' },
-  { href: '/nuevo', label: 'Cargar' },
   { href: '/historial', label: 'Historial' },
-  { href: '/configuracion', label: 'Config' },
 ] as const;
+
+const DERECHA = [{ href: '/configuracion', label: 'Config' }] as const;
+
+function ItemNav({ href, label, activo }: { href: string; label: string; activo: boolean }) {
+  return (
+    <Link
+      href={href}
+      className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium ${
+        activo ? 'text-accent' : 'text-muted'
+      }`}
+    >
+      <span>{label}</span>
+    </Link>
+  );
+}
 
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-surface"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-    >
-      <ul className="mx-auto flex max-w-md">
-        {ITEMS.map((item) => {
-          const activo = pathname === item.href;
-          const esCargar = item.href === '/nuevo';
-          return (
-            <li key={item.href} className="flex-1">
-              <Link
-                href={item.href}
-                className={`flex min-h-[56px] flex-col items-center justify-center gap-0.5 text-xs font-medium ${
-                  activo
-                    ? esCargar
-                      ? 'text-accent-foreground'
-                      : 'text-accent'
-                    : 'text-muted'
-                }`}
-              >
-                {esCargar ? (
-                  <span
-                    className={`flex h-9 w-9 items-center justify-center rounded-full text-lg font-bold ${
-                      activo ? 'bg-accent text-accent-foreground' : 'bg-accent/90 text-accent-foreground'
-                    }`}
-                  >
-                    +
-                  </span>
-                ) : null}
-                <span>{item.label}</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+    <nav className="fixed inset-x-0 bottom-0 z-20">
+      <div className="relative mx-auto max-w-md">
+        <Link
+          href="/nuevo"
+          aria-label="Cargar gasto"
+          className="absolute left-1/2 top-0 z-30 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-accent text-2xl font-bold text-accent-foreground shadow-lg active:opacity-80"
+        >
+          +
+        </Link>
+        <div
+          className="flex border-t border-border bg-surface"
+          style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+        >
+          {IZQUIERDA.map((item) => (
+            <ItemNav key={item.href} {...item} activo={pathname === item.href} />
+          ))}
+          <div className="w-14 shrink-0" aria-hidden />
+          {DERECHA.map((item) => (
+            <ItemNav key={item.href} {...item} activo={pathname === item.href} />
+          ))}
+        </div>
+      </div>
     </nav>
   );
 }
