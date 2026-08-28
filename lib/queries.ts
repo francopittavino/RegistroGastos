@@ -8,6 +8,23 @@ export async function getCategories(): Promise<Category[]> {
   return rows;
 }
 
+export interface CategoryConUso extends Category {
+  cantidadGastos: number;
+}
+
+/** Categorías con la cantidad de gastos que las usan, para saber cuáles se pueden borrar. */
+export async function getCategoriesConUso(): Promise<CategoryConUso[]> {
+  const rows = (await sql`
+    select c.id, c.name, c.kind, count(e.id)::int as cantidad_gastos
+    from categories c
+    left join expenses e on e.category_id = c.id
+    group by c.id, c.name, c.kind
+    order by c.kind asc, c.name asc
+  `) as { id: number; name: string; kind: 'comida' | 'otros'; cantidad_gastos: number }[];
+
+  return rows.map((r) => ({ id: r.id, name: r.name, kind: r.kind, cantidadGastos: r.cantidad_gastos }));
+}
+
 export async function getSettings(): Promise<Settings> {
   const rows = (await sql`
     select monthly_budget from settings where id = 1

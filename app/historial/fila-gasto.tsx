@@ -5,19 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { borrarGasto } from '@/lib/actions';
 import { formatFecha, formatMonto } from '@/lib/format';
+import { IconTacho } from '@/app/components/icons';
 import type { Expense } from '@/lib/types';
-
-function IconTacho() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M4 7h16" />
-      <path d="M9 7V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5V7" />
-      <path d="M18 7v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
-    </svg>
-  );
-}
 
 export function FilaGasto({ gasto }: { gasto: Expense }) {
   const router = useRouter();

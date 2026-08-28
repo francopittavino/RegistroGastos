@@ -55,7 +55,7 @@ export function ConfiguracionForm({ settingsIniciales, inicioPeriodoActual }: Pr
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-8">
+    <div className="flex flex-col gap-6">
       <h1 className="text-lg font-semibold">Configuración</h1>
 
       <section className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-4">
