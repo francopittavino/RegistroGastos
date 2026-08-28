@@ -14,7 +14,7 @@ function ItemNav({ href, label, activo }: { href: string; label: string; activo:
   return (
     <Link
       href={href}
-      className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium ${
+      className={`flex min-h-[64px] flex-1 flex-col items-center justify-center gap-0.5 text-xs font-medium ${
         activo ? 'text-accent' : 'text-muted'
       }`}
     >
@@ -40,13 +40,17 @@ export function BottomNav() {
           className="flex border-t border-border bg-surface"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >
-          {IZQUIERDA.map((item) => (
-            <ItemNav key={item.href} {...item} activo={pathname === item.href} />
-          ))}
+          <div className="flex flex-1">
+            {IZQUIERDA.map((item) => (
+              <ItemNav key={item.href} {...item} activo={pathname === item.href} />
+            ))}
+          </div>
           <div className="w-14 shrink-0" aria-hidden />
-          {DERECHA.map((item) => (
-            <ItemNav key={item.href} {...item} activo={pathname === item.href} />
-          ))}
+          <div className="flex flex-1">
+            {DERECHA.map((item) => (
+              <ItemNav key={item.href} {...item} activo={pathname === item.href} />
+            ))}
+          </div>
         </div>
       </div>
     </nav>

@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="es" className={`${geistSans.variable} ${geistMono.variable} h-full`}>
       <body className="flex min-h-full flex-col antialiased">
-        <main className="mx-auto w-full max-w-md flex-1 pb-20">{children}</main>
+        <main className="mx-auto w-full max-w-md flex-1 pb-24">{children}</main>
         <BottomNav />
         <RegistrarServiceWorker />
       </body>
