@@ -3,20 +3,58 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+function IconInicio() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5.5 9.5V20a1 1 0 0 0 1 1H9a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h2.5a1 1 0 0 0 1-1V9.5" />
+    </svg>
+  );
+}
+
+function IconHistorial() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </svg>
+  );
+}
+
+function IconConfig() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V19a2 2 0 1 1-4 0v-.09a1.7 1.7 0 0 0-1.04-1.56 1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H4a2 2 0 1 1 0-4h.09a1.7 1.7 0 0 0 1.56-1.04 1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H10a1.7 1.7 0 0 0 1.04-1.56V4a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V10c.14.62.62 1.12 1.24 1.28.28.08.44.12.76.13v-.02" />
+    </svg>
+  );
+}
+
 const ITEMS = [
-  { href: '/', label: 'Inicio' },
-  { href: '/historial', label: 'Historial' },
-  { href: '/configuracion', label: 'Config' },
+  { href: '/', label: 'Inicio', Icon: IconInicio },
+  { href: '/historial', label: 'Historial', Icon: IconHistorial },
+  { href: '/configuracion', label: 'Config', Icon: IconConfig },
 ] as const;
 
-function ItemNav({ href, label, activo }: { href: string; label: string; activo: boolean }) {
+function ItemNav({
+  href,
+  label,
+  activo,
+  Icon,
+}: {
+  href: string;
+  label: string;
+  activo: boolean;
+  Icon: () => React.JSX.Element;
+}) {
   return (
     <Link
       href={href}
-      className={`flex min-h-[76px] flex-col items-center justify-end gap-0.5 pb-3 text-xs font-medium ${
+      className={`flex min-h-[88px] flex-col items-center justify-end gap-1 pb-3 text-xs font-medium ${
         activo ? 'text-accent' : 'text-muted'
       }`}
     >
+      <Icon />
       <span>{label}</span>
     </Link>
   );
@@ -40,7 +78,7 @@ export function BottomNav() {
           medio (Historial) cae exactamente al 50% del ancho, mismo punto
           donde flota el botón "+". La barra es más alta que el resto para
           que el botón (que sobresale hacia arriba) no se superponga con el
-          texto "Historial".
+          ícono/texto de Historial.
         */}
         <div
           className="grid grid-cols-3 border-t border-border bg-surface"
