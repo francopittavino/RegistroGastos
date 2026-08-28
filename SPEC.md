@@ -18,7 +18,7 @@ porque la URL no se comparte). Deploy en Vercel conectado a GitHub
 |---|---|
 | `expenses` | Un gasto: fecha, categoría, detalle, monto, medio de pago opcional |
 | `expense_items` | Desglose opcional de un gasto en ítems (ej. "leche", "pan"), con cantidad + unidad opcionales (kg, g, l, ml, unidad, paquete) |
-| `categories` | Nombre + `kind` (`comida` \| `otros`). Seedeadas: Supermercado, Verdulería, Delivery/Restaurante (comida); Vivienda, Servicios, Transporte, Salud, Ocio, Otros (otros). El usuario puede crear más desde el formulario de carga |
+| `categories` | Nombre + `kind` (`comida` \| `otros`). Seedeadas: Supermercado, Verdulería, Delivery/Restaurante (comida); Vivienda, Servicios, Transporte, Salud, Ocio, Otros (otros). Se pueden crear desde el formulario de carga, y editar/borrar desde Configuración (una categoría con gastos cargados no se puede borrar, solo renombrar o recategorizar) |
 | `periods` | Cada fila es un "mes": arranca en el instante exacto (día y hora) en que el usuario toca "Cerrar mes" en Configuración. El fin de un período es el inicio del siguiente, o "ahora" si es el actual. Los gastos se agrupan en un período por su `created_at` real (el momento en que se cargaron), no por la fecha editable del gasto |
 | `settings` | Presupuesto total del período (una sola fila) |
 
@@ -49,9 +49,17 @@ porque la URL no se comparte). Deploy en Vercel conectado a GitHub
   período anterior.
 - **Configuración** (`/configuracion`) — presupuesto del período, botón
   "Cobré: cerrar mes y empezar de nuevo" (con confirmación inline, no un
-  `confirm()` nativo). Cierra en el instante exacto en que se toca el
+  `confirm()` nativo; cierra en el instante exacto en que se toca el
   botón, así que cerrar dos veces el mismo día arranca igual un período
-  nuevo distinto desde ese momento
+  nuevo distinto desde ese momento), y gestión de categorías (renombrar,
+  cambiar entre comida/otros, o borrar si no tiene gastos cargados)
+
+**Robustez**: `app/error.tsx` y `app/loading.tsx` en español (en vez de la
+pantalla genérica de Next si algo falla o tarda). Las Server Actions
+validan sus datos de entrada del lado del servidor (monto > 0, categoría
+existente, fecha con formato válido, etc.) — no confían solo en la
+validación del formulario, porque son endpoints POST alcanzables
+directamente por cualquiera que conozca la URL.
 
 **Formato**: moneda `$45.000`, fechas `DD/MM/AAAA`, toda la UI en español,
 targets táctiles ≥44px, "hoy" siempre en horario argentino sin importar el
@@ -67,24 +75,43 @@ original — decisión del usuario, ya no es parte de la app.
 Ninguna de estas está decidida — son recomendaciones para elegir si te
 interesan, no un compromiso de trabajo.
 
-1. **Editar/borrar categorías.** Hoy solo se pueden crear. Es la limitación
-   que más rápido se nota en el uso diario (te equivocaste al crear una, o
-   cambiaste de idea sobre si algo es "comida" o no) y es barata de agregar.
-2. **Proyección basada en la duración real de los períodos de pago.** Hoy
+1. **Proyección basada en la duración real de los períodos de pago.** Hoy
    la proyección de Home se ancla siempre al calendario (1° del mes que
    viene), sin relación con el período de pago real. Con 2-3 períodos
    cerrados se podría ofrecer también una proyección anclada a cuándo
    históricamente cobrás.
-3. **Recordatorio de carga.** Notificación push (la PWA ya lo permite en
+2. **Recordatorio de carga.** Notificación push (la PWA ya lo permite en
    principio) si pasó un día entero sin cargar ningún gasto. Requeriría
    pedir permiso de notificaciones, que hoy no se pide.
-4. **Comparación entre períodos ajustada por inflación.** Se dejó afuera a
+3. **Comparación entre períodos ajustada por inflación.** Se dejó afuera a
    propósito porque comparar montos nominales en Argentina es engañoso. Si
    en algún momento te interesa, lo más simple sería ingresar manualmente
    un índice de referencia (o un ajuste por mes) en vez de comparar montos
    crudos.
-5. **Unidades personalizadas.** Hoy la unidad de cantidad es una lista fija
+4. **Unidades personalizadas.** Hoy la unidad de cantidad es una lista fija
    (kg, g, l, ml, unidad, paquete). Si compras algo que no encaja bien ahí
    (ej. "docena", "atado"), se podría permitir texto libre.
 
-Si tuviera que priorizar uno: **editar categorías**.
+## Cuentas separadas (a futuro, sin decidir todavía)
+
+Hoy la app no tiene login: es privada solo porque no se comparte la URL, y
+todos los datos son de un único usuario global. Si en algún momento se
+quiere dar la app a otras personas, cada una con su propia cuenta aislada:
+
+- **Autenticación real**, hoy inexistente. Para un grupo chico y cerrado de
+  gente conocida, las opciones más simples son login con Google (sin
+  manejar contraseñas ni emails) o usuario/contraseña asignado a mano (sin
+  flujo de registro). Email + link mágico también sirve, pero necesita un
+  proveedor de envío de mails.
+- **Modelo de datos**: agregar una tabla `users` y una columna `user_id` en
+  `categories`, `expenses`, `periods` y `settings`. Todas las queries (ya
+  centralizadas en `lib/queries.ts` y `lib/actions.ts`) necesitan filtrar
+  por el usuario logueado — refactor grande pero mecánico gracias a esa
+  organización.
+- Cada usuario arrancaría con su propio set de categorías seedeadas (hoy
+  son globales).
+- Sesión: cookie + tabla de sesiones (a mano, o con una librería como
+  Auth.js).
+
+Es un cambio de arquitectura considerable, pensado como una etapa aparte,
+no algo para el corto plazo.

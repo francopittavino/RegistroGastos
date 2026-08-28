@@ -100,6 +100,18 @@ las pantallas y lo que queda explícitamente fuera del V1.
 - **Editar/borrar un gasto nunca depende del período**: no hay ni debe
   haber ninguna restricción en `formulario-gasto.tsx`/`actions.ts` que
   bloquee editar o borrar un gasto de un período ya cerrado.
+- **Las Server Actions validan sus datos de entrada del lado del
+  servidor** (`validarGastoInput` y las validaciones inline en
+  `lib/actions.ts`), no solo el formulario. Son endpoints POST públicos —
+  cualquiera que conozca la URL puede mandar un POST directo sin pasar por
+  la UI. Si agregás una action nueva que reciba datos del cliente,
+  validalos ahí también.
+- **Una categoría con gastos cargados no se puede borrar** (`borrarCategoria`
+  tira error si `cantidadGastos > 0`), solo renombrar o recategorizar
+  (comida ↔ otros). Evita perder el historial de esos gastos "huérfanos".
+- **`app/error.tsx` y `app/loading.tsx`** cubren toda la app (no hay
+  versiones por ruta) — si agregás una ruta nueva, hereda esas por
+  default, no dupliques a menos que necesites un mensaje específico.
 
 ## Base de datos
 
