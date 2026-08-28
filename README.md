@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Registro de Gastos
 
-## Getting Started
+App personal para controlar gastos mensuales, con foco en medir cuánto se
+gasta en comida. Ver [`SPEC.md`](./SPEC.md) para el modelo de datos, las
+pantallas y qué queda fuera del V1. Ver [`CLAUDE.md`](./CLAUDE.md) para las
+convenciones del proyecto.
 
-First, run the development server:
+## Stack
+
+Next.js (App Router) + TypeScript + Tailwind CSS, Neon Postgres, deploy en
+Vercel. PWA instalable desde el navegador del celular.
+
+## Variables de entorno
+
+| Variable | De dónde sale | Para qué |
+|---|---|---|
+| `DATABASE_URL` | Vercel → proyecto → Storage → base Neon conectada | Conexión a Postgres, usada por `lib/db/index.ts` y `scripts/migrate.mjs` |
+
+El resto de las variables que aparecen en `.env.local` (`PG*`, `POSTGRES_*`,
+`NEON_*`, etc.) las genera automáticamente la integración de Neon en Vercel —
+no hace falta tocarlas a mano, `DATABASE_URL` es la única que usa el código.
+
+`.env.local` no se commitea (está en `.gitignore`). Para traerlo en una
+máquina nueva, con el proyecto ya linkeado a Vercel:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npx vercel link
+npx vercel env pull .env.local --environment=preview
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+(se usa `preview` porque en este proyecto la base de datos no tiene un valor
+propio en el ambiente `development` de Vercel — es la misma base para
+Preview y Production).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Desarrollo local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run db:migrate   # crea las tablas y siembra las categorías, es idempotente
+npm run dev
+```
 
-## Learn More
+**Ojo**: no hay una base de datos de "desarrollo" separada de producción —
+`DATABASE_URL` apunta a la misma base Neon en ambos casos. Cualquier gasto
+que cargues probando localmente queda en los datos reales. Para limpiar
+datos de prueba sin tocar categorías ni configuración:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+node --env-file=.env.local -e "
+const { neon } = require('@neondatabase/serverless');
+const sql = neon(process.env.DATABASE_URL);
+sql\`delete from expenses\`.then(() => console.log('listo'));
+"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+El repo está conectado a un proyecto de Vercel (deploy automático al pushear
+a la rama principal). La base de datos Neon se administra desde la pestaña
+Storage del proyecto en el dashboard de Vercel.
 
-## Deploy on Vercel
+## Scripts
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` — servidor de desarrollo
+- `npm run build` — build de producción
+- `npm run db:migrate` — aplica `lib/db/schema.sql` (crear tablas + seed de categorías)
+- `npm run lint` — ESLint
